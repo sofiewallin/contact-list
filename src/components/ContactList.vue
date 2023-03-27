@@ -1,13 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue';
+import ContactListPagination from './ContactListPagination.vue';
 
 const props = defineProps({
-  apiUrl: {type: String, required: true},
-})
+  apiUrl: {
+    type: String, 
+    required: true
+  }
+});
 
-let contactList = ref([])
-let isLoaded = ref(false)
-let error = ref(null)
+/* Getting contact list from API */
+let contactList = ref([]);
+let isLoaded = ref(false);
+let error = ref(null);
 
 const getContactList = async () => {
   try {
@@ -17,30 +22,48 @@ const getContactList = async () => {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
-    })
+    });
         
-    const users = await response.json()
+    const users = await response.json();
         
     if (!response.ok) {
       throw new Error(response.statusText);
     }
  
-    contactList.value = users.results
-    error.value = null
+    contactList.value = users.results;
+    error.value = null;
     
   } catch {
-    error.value = 'Something went wrong when getting the list of contacts. Try reloading the page and try again.'
-    isLoaded.value = true
+    error.value = 'Something went wrong when getting the list of contacts. Try reloading the page and try again.';
+    isLoaded.value = true;
   } finally {
-    isLoaded.value = true
+    isLoaded.value = true;
   }
 }
-getContactList()
+getContactList();
+
+/* Paginate contact list */
+const currentPage = ref(1);
+const itemsPerPage = ref(20);
+
+const paginatedContactList = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+
+  return contactList.value.slice(start, end);
+});
+
+const changePage = pageNumber => {
+  currentPage.value = pageNumber;
+}
 
 </script>
 
 <template>
-  <table v-if="isLoaded">
+  <div v-if="!isLoaded">
+    <p>Loading ...</p>
+  </div>
+  <table v-else>
     <thead>
       <tr>
         <th colspan="2">Name</th>
@@ -56,7 +79,7 @@ getContactList()
       <tr v-else-if="contactList.length === 0">
         <td colspan="5">No contacts have been added.</td>
       </tr>
-      <tr v-else v-for="contact in contactList" :key="contact.login.uuid">
+      <tr v-else v-for="contact in paginatedContactList" :key="contact.login.uuid">
         <td><img :src="contact.picture.large" :alt="`Portrait of ${contact.name.first} ${contact.name.last}`"></td>
         <td>{{ `${contact.name.first} ${contact.name.last}` }}</td>
         <td>{{ contact.email }}</td>
@@ -65,9 +88,12 @@ getContactList()
       </tr>
     </tbody>
   </table>
-  <div v-if="!isLoaded">
-    <p>Loading ...</p>
-  </div>
+  <ContactListPagination 
+    :itemCount="contactList.length"
+    :itemsPerPage="itemsPerPage"
+    :currentPage="currentPage"
+    @changePage="changePage"
+  />
 </template>
 
 <style scoped>
