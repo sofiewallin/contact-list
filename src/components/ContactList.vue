@@ -16,7 +16,7 @@ let error = ref(null);
 
 const getContactList = async () => {
   try {
-    const response = await fetch(`${props.apiUrl}?results=105&nat=gb`, {
+    const response = await fetch(`${props.apiUrl}?results=107&nat=gb`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -24,13 +24,13 @@ const getContactList = async () => {
       }
     });
         
-    const users = await response.json();
+    const people = await response.json();
         
     if (!response.ok) {
       throw new Error(response.statusText);
     }
  
-    contactList.value = users.results;
+    contactList.value = people.results;
     error.value = null;
     
   } catch {
@@ -42,6 +42,63 @@ const getContactList = async () => {
 }
 getContactList();
 
+/* Sort contact list by title */
+let isSortedAsc = ref(true);
+let isSortedBy = ref('name');
+
+let sortedContactList = computed(() => {
+  let sortedContactList = [];
+
+  sortedContactList = contactList.value.map(contact => {
+    let newContact = {
+      id: contact.login.uuid,
+      name: `${contact.name.first} ${contact.name.last}`,
+      age: contact.dob.age,
+      email: contact.email,
+      phone: contact.phone,
+      image: contact.picture.large
+    }
+    return newContact;
+  });
+  
+  if (isSortedBy.value === 'name') {
+    sortedContactList = sortedContactList.sort((a, b) => {
+      if (a.name < b.name) {
+        return -1;
+      }
+
+      if (a.name > b.name) {
+        return 1;
+      }
+
+      return 0;
+    });
+  }
+
+  if (isSortedBy.value === 'age') {
+    sortedContactList = sortedContactList.sort((a, b) => {
+        return a.age - b.age;
+    })
+  }
+
+  if (!isSortedAsc.value) {
+    sortedContactList = sortedContactList.reverse();
+  }
+
+  return sortedContactList;
+});
+
+const sortContactList = column => {
+  if (isSortedBy.value !== column) {
+    isSortedAsc.value = true;
+  } else {
+    isSortedAsc.value = !isSortedAsc.value;
+  }
+
+  isSortedBy.value = column;
+
+}
+
 /* Paginate contact list */
 const currentPage = ref(1);
 const itemsPerPage = ref(20);
@@ -50,12 +107,22 @@ const paginatedContactList = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
 
-  return contactList.value.slice(start, end);
+  return sortedContactList.value.slice(start, end);
 });
 
 const changePage = pageNumber => {
   currentPage.value = pageNumber;
 }
+
+watch([isSortedAsc, isSortedBy], () => {
+  currentPage.value = 1;
+});
+
+watch(currentPage, () => {
+  window.scrollTo({
+      top: 0,
+  });
+});
 
 </script>
 
@@ -66,10 +133,10 @@ const changePage = pageNumber => {
   <table v-else>
     <thead>
       <tr>
-        <th colspan="2">Name</th>
+        <th colspan="2" @click="sortContactList('name')">Name</th>
+        <th @click="sortContactList('age')">Age</th>
         <th>Email</th>
         <th>Phone</th>
-        <th>Address</th>
       </tr>
     </thead>
     <tbody>
@@ -79,12 +146,12 @@ const changePage = pageNumber => {
       <tr v-else-if="contactList.length === 0">
         <td colspan="5">No contacts have been added.</td>
       </tr>
-      <tr v-else v-for="contact in paginatedContactList" :key="contact.login.uuid">
-        <td><img :src="contact.picture.large" :alt="`Portrait of ${contact.name.first} ${contact.name.last}`"></td>
-        <td>{{ `${contact.name.first} ${contact.name.last}` }}</td>
+      <tr v-else v-for="contact in paginatedContactList" :key="contact.id">
+        <td><img :src="contact.image" :alt="`Portrait of ${contact.name}`"></td>
+        <td>{{ contact.name }}</td>
+        <td>{{ contact.age }}</td>
         <td>{{ contact.email }}</td>
         <td>{{ contact.phone }}</td>
-        <td>{{ `${contact.location.street.name} ${contact.location.street.number}, ${contact.location.postcode} ${contact.location.city}` }}</td>
       </tr>
     </tbody>
   </table>

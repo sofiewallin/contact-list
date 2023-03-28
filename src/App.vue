@@ -2,7 +2,6 @@
 import ContactList from './components/ContactList.vue';
 
 const apiUrl = 'https://randomuser.me/api/';
-
 </script>
 
 <template>

@@ -25,7 +25,6 @@ const pageCount = computed(() => {
 const pages = computed(() => {
   return Array.from({ length: pageCount.value }, (_, i) => i + 1);
 });
-
 </script>
 
 <template>
