@@ -1,7 +1,10 @@
 <script setup>
+import { ref } from 'vue';
 import ContactList from './components/ContactList.vue';
 
-const apiUrl = 'https://randomuser.me/api/';
+const apiUrl = ref('https://randomuser.me/api/?results=107&nat=gb');
+const isPaginated = ref(true);
+const itemsPerPage = ref(20);
 </script>
 
 <template>
@@ -9,7 +12,11 @@ const apiUrl = 'https://randomuser.me/api/';
     <header class="main-header">
       <h1 class="title title--main">Contacts</h1>
     </header>
-    <ContactList :apiUrl="apiUrl" />
+    <ContactList 
+      :apiUrl="apiUrl"
+      :isPaginated="isPaginated"
+      :itemsPerPage="itemsPerPage"
+    />
   </div>
 </template>
 

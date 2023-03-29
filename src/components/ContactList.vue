@@ -6,6 +6,14 @@ const props = defineProps({
   apiUrl: {
     type: String, 
     required: true
+  },
+  isPaginated: {
+    type: Boolean,
+    required: true
+  },
+  itemsPerPage: {
+    type: Number,
+    required: false
   }
 });
 
@@ -16,7 +24,7 @@ let error = ref(null);
 
 const getContactList = async () => {
   try {
-    const response = await fetch(`${props.apiUrl}?results=107&nat=gb`, {
+    const response = await fetch(`${props.apiUrl}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -24,13 +32,13 @@ const getContactList = async () => {
       }
     });
         
-    const people = await response.json();
+    const result = await response.json();
         
     if (!response.ok) {
       throw new Error(response.statusText);
     }
  
-    contactList.value = people.results;
+    contactList.value = result.results;
     error.value = null;
     
   } catch {
@@ -105,13 +113,16 @@ const sortContactList = column => {
 
 /* Paginate contact list */
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
 
 const paginatedContactList = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value;
-  const end = start + itemsPerPage.value;
+  const start = (currentPage.value - 1) * props.itemsPerPage;
+  const end = start + props.itemsPerPage;
 
-  return sortedContactList.value.slice(start, end);
+  if (props.isPaginated) {
+    return sortedContactList.value.slice(start, end);
+  } else {
+    return sortedContactList.value;
+  }
 });
 
 const changePage = pageNumber => {
@@ -192,9 +203,9 @@ watch(currentPage, () => {
     </div>
     <div class="contact-list__controls">
       <span class="contact-list__display-count">{{ contactList.length }} contacts</span>
-      <BasePagination 
+      <BasePagination v-if="props.isPaginated"
         :itemCount="contactList.length"
-        :itemsPerPage="itemsPerPage"
+        :itemsPerPage="props.itemsPerPage"
         :currentPage="currentPage"
         @changePage="changePage"
       />
