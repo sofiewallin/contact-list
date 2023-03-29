@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import ContactListPagination from './ContactListPagination.vue';
+import BasePagination from './BasePagination.vue';
 
 const props = defineProps({
   apiUrl: {
@@ -43,7 +43,7 @@ const getContactList = async () => {
 getContactList();
 
 /* Sort contact list by title */
-let isSortedAsc = ref(true);
+let sortingOrder = ref('ascending');
 let isSortedBy = ref('name');
 
 let sortedContactList = computed(() => {
@@ -81,7 +81,7 @@ let sortedContactList = computed(() => {
     })
   }
 
-  if (!isSortedAsc.value) {
+  if (sortingOrder.value === 'descending') {
     sortedContactList = sortedContactList.reverse();
   }
 
@@ -90,9 +90,13 @@ let sortedContactList = computed(() => {
 
 const sortContactList = column => {
   if (isSortedBy.value !== column) {
-    isSortedAsc.value = true;
+    sortingOrder.value = 'ascending';
   } else {
-    isSortedAsc.value = !isSortedAsc.value;
+    if (sortingOrder.value === 'ascending') {
+      sortingOrder.value = 'descending'
+    } else {
+      sortingOrder.value = 'ascending'
+    }
   }
 
   isSortedBy.value = column;
@@ -101,7 +105,7 @@ const sortContactList = column => {
 
 /* Paginate contact list */
 const currentPage = ref(1);
-const itemsPerPage = ref(20);
+const itemsPerPage = ref(10);
 
 const paginatedContactList = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
@@ -114,7 +118,7 @@ const changePage = pageNumber => {
   currentPage.value = pageNumber;
 }
 
-watch([isSortedAsc, isSortedBy], () => {
+watch([sortingOrder, isSortedBy], () => {
   currentPage.value = 1;
 });
 
@@ -131,12 +135,37 @@ watch(currentPage, () => {
     <p>Loading ...</p>
   </div>
   <table v-else>
+    <caption>A list of contacts fetched from the <a href="https://randomuser.me/">Random user generator</a>.</caption>
     <thead>
       <tr>
-        <th colspan="2" @click="sortContactList('name')">Name</th>
-        <th @click="sortContactList('age')">Age</th>
-        <th>Email</th>
-        <th>Phone</th>
+        <th
+          colspan="2"
+          :aria-sort="[isSortedBy === 'name' ? sortingOrder : null]"
+          class="contact-list__heading contact-list__heading--sortable"
+        >
+          <button
+            type="button"
+            @click="sortContactList('name')"
+            class="sort-button"
+          >
+            Name
+            <div class="sort-button__order-indicator"></div>
+          </button>
+        </th>
+        <th
+          :aria-sort="[isSortedBy === 'age' ? sortingOrder : null]"
+          class="contact-list__heading contact-list__heading--sortable">
+          <button
+            type="button"
+            @click="sortContactList('age')"
+            class="sort-button"
+          >
+            Age
+            <div class="sort-button__order-indicator"></div>
+          </button>
+        </th>
+        <th class="contact-list__heading">Email</th>
+        <th class="contact-list__heading">Phone</th>
       </tr>
     </thead>
     <tbody>
@@ -155,7 +184,8 @@ watch(currentPage, () => {
       </tr>
     </tbody>
   </table>
-  <ContactListPagination 
+  <span class="display-count">{{ contactList.length }} contacts</span>
+  <BasePagination 
     :itemCount="contactList.length"
     :itemsPerPage="itemsPerPage"
     :currentPage="currentPage"
